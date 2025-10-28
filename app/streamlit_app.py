@@ -370,7 +370,8 @@ elif compare_mode == "Multi-region":
 st.markdown("---")
 st.markdown(
     
-    " CanGrid - The Canadian Electricity Grid Project [View Project on GitHub](https://github.com/Sleep-Group/CanGrid)"
+    " CanGrid - The Canadian Electricity Grid Project, citation can be found in the GitHub repo [View Project on GitHub](https://github.com/Sleep-Group/CanGrid)"
     ,
     unsafe_allow_html=True
+
 )
