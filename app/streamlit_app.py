@@ -118,7 +118,7 @@ with c3:
 # --- Combined unit wiring ---
 ef_unit = "kg" if co2e_unit_label.startswith("kg") else "g"  # model INPUT unit
 if co2e_unit_label.startswith("g"):
-    em_scale, EM_LABEL, em_tag = 1000.0, "g CO₂e/kWh", "gco2e_per_kwh"
+    em_scale, EM_LABEL, em_tag = 1.0, "g CO₂e/kWh", "gco2e_per_kwh"
 else:
     em_scale, EM_LABEL, em_tag = 1.0, "kg CO₂e/kWh", "kgco2e_per_kwh"
 
@@ -198,6 +198,12 @@ if compare_mode == "Multi-scenario":
         st.stop()
     data_by_scenario = get_many_scenarios(scenario_list, gwp, ef_unit)
     years = next(iter(data_by_scenario.values()))["years"]
+elif compare_mode == "Multi-region":
+    if not sectors_chosen:
+        st.warning("Pick at least one region.")
+        st.stop()
+    data = get_data_for_scenario(scenario, gwp, ef_unit)
+    years = data["years"]
 else:
     data = get_data_for_scenario(scenario, gwp, ef_unit)
     years = data["years"]
@@ -358,20 +364,144 @@ if compare_mode == "None":
         style_emissions_axis(fig)
         show(fig)
         st.dataframe(tbl.round(6))
-        download_button_for_table(tbl.round(6), f"emissions_split_{sector}_{year}_{scenario.replace(' ','_')}_{gWp_mode}_{em_tag}")
+        download_button_for_table(tbl.round(6), f"emissions_split_{sector}_{year}_{scenario.replace(' ','_')}_{gwp_mode}_{em_tag}")
 
 elif compare_mode == "Multi-scenario":
-    # (not shown here)
-    pass
+    # ---------- COMPARE SCENARIOS / SINGLE REGION ----------
+    if chart == "Total Intensity (line)":
+        frames = []
+        for sc in scenario_list:
+            df = _intensity_to_df(data_by_scenario[sc]["grid_intensity"][sector], em_scale)
+            df["Scenario"] = sc
+            frames.append(df)
+        
+        all_df = pd.concat(frames, ignore_index=True).rename(columns={"kgCO2e/kWh": EM_LABEL})
+        title = f"{sector} – Grid CO₂e Intensity by Scenario ({gwp_mode})"
+        fig = px.line(all_df, x="Year", y=EM_LABEL, color="Scenario", title=title)
+        style_emissions_axis(fig)
+        show(fig)
+        
+        s_out = all_df.pivot(index="Year", columns="Scenario", values=EM_LABEL).reset_index()
+        st.dataframe(s_out)
+        download_button_for_table(s_out, f"intensity_multiscenario_{sector}_{gwp_mode}_{em_tag}")
+    else:
+        st.warning(
+            f"Chart '{chart}' is not supported for Multi-scenario comparison. "
+            "Please select 'Total Intensity (line)' to compare scenarios."
+        )
+        st.stop()
+
 elif compare_mode == "Multi-region":
-    # (not shown here)
-    pass
+    # ---------- SINGLE SCENARIO / COMPARE REGIONS ----------
+    frames = []
+    
+    if chart == "Total Intensity (line)":
+        for r in sectors_chosen:
+            df = _intensity_to_df(data["grid_intensity"][r], em_scale)
+            df["Region"] = r
+            frames.append(df)
+        
+        all_df = pd.concat(frames, ignore_index=True).rename(columns={"kgCO2e/kWh": EM_LABEL})
+        title = f"Grid CO₂e Intensity by Region ({scenario}, {gwp_mode})"
+        fig = px.line(all_df, x="Year", y=EM_LABEL, color="Region", title=title)
+        style_emissions_axis(fig)
+        show(fig)
+        
+        s_out = all_df.pivot(index="Year", columns="Region", values=EM_LABEL).reset_index()
+        st.dataframe(s_out)
+        download_button_for_table(s_out, f"intensity_multiregion_{scenario.replace(' ','_')}_{gwp_mode}_{em_tag}")
+
+    elif chart == "Energy Mix (% stacked bar, every 5 years)":
+        for r in sectors_chosen:
+            tbl = table_mix_percent_single(data, r)
+            long = tbl.reset_index().melt(id_vars="Source", var_name="Year", value_name="% of electricity")
+            long["Region"] = r
+            frames.append(long)
+        
+        all_df = pd.concat(frames, ignore_index=True)
+        title = f"Energy Mix (%) by Region ({scenario}, {gwp_mode})"
+        fig = px.bar(all_df, x="Year", y="% of electricity", color="Source", facet_col="Region", title=title)
+        style_percent_axis(fig, ytitle="% of electricity")
+        show(fig)
+
+        s_out = all_df.pivot_table(index=["Region", "Source"], columns="Year", values="% of electricity").round(2)
+        st.dataframe(s_out)
+        download_button_for_table(s_out.reset_index(), f"mix_percent_multiregion_{scenario.replace(' ','_')}_{gwp_mode}")
+
+    elif chart == "Energy Mix (stacked bar, every 5 years)":
+        for r in sectors_chosen:
+            tbl = table_mix_energy_single(data, r)
+            long = tbl.reset_index().melt(id_vars="Source", var_name="Year", value_name=ELEC_LABEL)
+            long["Region"] = r
+            frames.append(long)
+        
+        all_df = pd.concat(frames, ignore_index=True)
+        title = f"Energy Mix ({ELEC_LABEL}) by Region ({scenario}, {gwp_mode})"
+        fig = px.bar(all_df, x="Year", y=ELEC_LABEL, color="Source", facet_col="Region", title=title)
+        style_energy_axis(fig)
+        show(fig)
+        
+        s_out = all_df.pivot_table(index=["Region", "Source"], columns="Year", values=ELEC_LABEL).round(3)
+        st.dataframe(s_out)
+        download_button_for_table(s_out.reset_index(), f"mix_{ELEC_LABEL}_multiregion_{scenario.replace(' ','_')}_{gwp_mode}")
+
+    elif chart == "CO₂e Contribution (stacked bar, every 5 years)":
+        for r in sectors_chosen:
+            tbl = table_contrib_single(data, r)
+            long = tbl.reset_index().melt(id_vars="Source", var_name="Year", value_name=EM_LABEL)
+            long["Region"] = r
+            frames.append(long)
+
+        all_df = pd.concat(frames, ignore_index=True)
+        title = f"CO₂e Contribution by Region ({scenario}, {gwp_mode})"
+        fig = px.bar(all_df, x="Year", y=EM_LABEL, color="Source", facet_col="Region", title=title)
+        style_emissions_axis(fig)
+        show(fig)
+        
+        s_out = all_df.pivot_table(index=["Region", "Source"], columns="Year", values=EM_LABEL).round(5)
+        st.dataframe(s_out)
+        download_button_for_table(s_out.reset_index(), f"contrib_multiregion_{scenario.replace(' ','_')}_{gwp_mode}_{em_tag}")
+
+    elif chart == "CO₂e Share by Source (% stacked bar, every 5 years)":
+        for r in sectors_chosen:
+            tbl = table_co2e_share_single(data, r)
+            long = tbl.reset_index().melt(id_vars="Source", var_name="Year", value_name="% of CO₂e")
+            long["Region"] = r
+            frames.append(long)
+        
+        all_df = pd.concat(frames, ignore_index=True)
+        title = f"CO₂e Share by Source (%) by Region ({scenario}, {gwp_mode})"
+        fig = px.bar(all_df, x="Year", y="% of CO₂e", color="Source", facet_col="Region", title=title)
+        style_percent_axis(fig, ytitle="% of CO₂e")
+        show(fig)
+        
+        s_out = all_df.pivot_table(index=["Region", "Source"], columns="Year", values="% of CO₂e").round(2)
+        st.dataframe(s_out)
+        download_button_for_table(s_out.reset_index(), f"co2e_share_multiregion_{scenario.replace(' ','_')}_{gwp_mode}")
+
+    elif chart == "Emissions by Source (Operating vs Embodied, single year)":
+        year = pick_year_control()
+        for r in sectors_chosen:
+            tbl = table_emissions_split_single_year(data, r, year)
+            long = tbl.reset_index().melt(id_vars="Source", var_name="Type", value_name=EM_LABEL)
+            long["Region"] = r
+            frames.append(long)
+        
+        all_df = pd.concat(frames, ignore_index=True)
+        title = f"Emissions by Source ({EM_LABEL}, {year}) by Region ({scenario}, {gwp_mode})"
+        fig = px.bar(all_df, x="Source", y=EM_LABEL, color="Type", barmode="stack", facet_col="Region", title=title)
+        style_emissions_axis(fig)
+        show(fig)
+        
+        s_out = all_df.pivot_table(index=["Region", "Source"], columns="Type", values=EM_LABEL).round(6)
+        st.dataframe(s_out)
+        download_button_for_table(s_out.reset_index(), f"emissions_split_multiregion_{year}_{scenario.replace(' ','_')}_{gwp_mode}_{em_tag}")
+
 
 st.markdown("---")
 st.markdown(
     
-    " CanGrid - The Canadian Electricity Grid Project, citation can be found in the GitHub repo [View Project on GitHub](https://github.com/Sleep-Group/CanGrid)"
+    " CanGrid - The Canadian Electricity Grid Project [View Project on GitHub](https://github.com/Sleep-Group/CanGrid)"
     ,
     unsafe_allow_html=True
-
 )
