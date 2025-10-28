@@ -1,0 +1,167 @@
+# Electricity Grid Dashboard
+
+Interactive, repo‑first dashboard for exploring Canada’s electricity generation, grid‑intensity and emissions breakdowns across scenarios and regions.
+
+Built with **Streamlit + Plotly + pandas**. Features:
+
+* Scenario picker (loads matching Excel):
+
+  * **2021 Current**, **2021 Evolving**, **2023 Canada Net Zero**, **2023 Current**, **2023 Global Net Zero**
+* **GWP (100‑yr) toggle**: AR6, AR5, or Custom (CO₂/CH₄/N₂O/SF₆)
+* **Compare modes**:
+
+  * **None** (single scenario & region)
+  * **Multi‑scenario** (facet by scenario for one region)
+  * **Multi‑region** (facet by region for one scenario)
+* Multiple chart types + matching data tables
+* **Export** button to download the currently displayed table as CSV
+
+---
+
+## Repo layout
+
+```
+.
+├─ app/
+│  ├─ streamlit_app.py        # UI + charts + compare modes + export
+│  └─ grid_core.py            # data processing & model logic
+├─ data/
+│  ├─ Electricity_Generation_2021_Current.xlsx
+│  ├─ Electricity_Generation_2021_Evolving.xlsx
+│  ├─ Electricity_Generation_2023_Canada_Net_Zero.xlsx
+│  ├─ Electricity_Generation_2023_Current.xlsx
+│  └─ Electricity_Generation_2023_Global_Net_Zero.xlsx
+├─ specific_breakdowns.py     # hydro/coal/gas/oil/solar/wind splits & CFs
+├─ AESO_Data_Extract.py       # AB natgas split override (DDprojections)
+├─ IESO_Data_Extract.py       # ON natgas split override
+├─ requirements.txt
+└─ README.md
+```
+
+> If your helper modules live elsewhere, update the imports in `app/grid_core.py`.
+
+---
+
+## Quick start (local)
+
+**Prereqs**: Python 3.10+ (3.11 recommended). Install Git.
+
+```bash
+# clone
+git clone <your-repo-url>
+cd <your-repo>
+
+# create venv
+python -m venv .venv
+# activate
+#   Windows PowerShell
+. .venv\Scripts\activate
+#   macOS/Linux
+source .venv/bin/activate
+# install deps
+pip install -r requirements.txt
+
+# run
+streamlit run app/streamlit_app.py
+```
+
+Open the URL printed by Streamlit
+
+---
+
+## Data inputs
+
+Place the five Excel files in `data/` with **exact** filenames:
+
+* `Electricity_Generation_2021_Current.xlsx`
+* `Electricity_Generation_2021_Evolving.xlsx`
+* `Electricity_Generation_2023_Canada_Net_Zero.xlsx`
+* `Electricity_Generation_2023_Current.xlsx`
+* `Electricity_Generation_2023_Global_Net_Zero.xlsx`
+
+The app will map scenarios to these files automatically.
+
+> The underlying slicing (row ranges by province) mirrors the original `Gridv2.py` logic and expects the same sheet structure.
+
+---
+
+## Using the app
+
+1. **Scenario** — choose one (or several in Multi‑scenario mode). The app swaps in the corresponding Excel and recomputes.
+2. **GWP (100‑yr)** — pick **AR6**, **AR5**, or **Custom** and enter values for CO₂/CH₄/N₂O/SF₆.
+3. **Compare mode**
+
+   * **None**: one scenario + one region.
+   * **Multi‑scenario**: pick 2–5 scenarios (fixed region). Stacked‑bar charts are **faceted** by scenario; line charts overlay by scenario.
+   * **Multi‑region**: pick 2–8 regions (fixed scenario). Stacked‑bar charts are **faceted** by region; line charts overlay by region.
+4. **Chart** — select from:
+
+   * Total Intensity (line)
+   * Energy Mix (% stacked bar, every 5 years)
+   * Energy Mix (TWh stacked bar, every 5 years)
+   * Carbon Contribution (kgCO₂/kWh stacked bar, every 5 years)
+   * CO₂ Share by Source (% stacked bar, every 5 years)
+   * Emissions by Source (Operating vs Embodied, single year)
+5. **Year** — used by the single‑year emissions split.
+6. **Download** — exports **exactly** the table shown beneath each chart.
+
+**Regions available**: Canada, AB, BC, MB, NB, NL, NT, NS, NU, ON, PE, QC, SK, YT.
+
+---
+
+## Configuration & assumptions
+
+* **GWP factors**: default AR6 (CH₄=27.2, N₂O=273, SF₆=25,200); AR5 and custom supported.
+* **Overlays/overrides**: AB & ON natgas splits use `AESO_Data_Extract.DDprojections` and `IESO_Data_Extract.IESO_natgas_breakdown` respectively.
+* **Units**: Generation is converted to kWh internally. Some display tables convert to TWh.
+* **Embodied vs operating**: embodied intensities use proxies consistent with the original script; update in `grid_core.py` as new LCA data becomes available.
+
+---
+
+## Troubleshooting
+
+* **`openpyxl` errors**: ensure the package is installed (it’s in `requirements.txt`).
+* **File not found**: check `data/` filenames and scenario mapping in `streamlit_app.py`.
+* **Slow loads**: the app uses `@st.cache_data`; first run per scenario/GWP will compute, subsequent runs are cached.
+* **Weird plots**: verify your helper modules (`specific_breakdowns.py`, AESO/IESO files) return expected structures and province keys.
+
+---
+
+## Requirements
+
+See `requirements.txt`. Minimal set:
+
+```
+streamlit>=1.36
+plotly>=5.22
+pandas>=2.0
+openpyxl>=3.1
+```
+
+## Citation / Acknowledgements
+
+If you publish results from this dashboard, please cite  this repository. Contributions welcome via PRs. All datasources are listed below the citation.
+
+# Citation:
+Wei, Z., Turnbull, D., Sleep, S., Canada-Grid-Project
+# References:
+(1)	Canada, E. and C. C. Fuel Life Cycle Assessment Model. https://www.canada.ca/en/environment-climate-change/services/managing-pollution/fuel-life-cycle-assessment-model.html (accessed 2024-10-08).
+(2)	ecoinvent Version 3.8. https://support.ecoinvent.org/ecoinvent-version-3.8 (accessed 2024-10-10).
+(3)	CER. Canada’s Energy Future Data Appendices, 2016. https://doi.org/10.35002/ZJR8-8X75.
+(4)	Forecasting. AESO. https://www.aeso.ca/grid/grid-planning/forecasting/ (accessed 2024-10-10).
+(5)	Distribution-Connected Generation. https://www.ieso.ca/Power-Data/Supply-Overview/Distribution-Connected-Generation (accessed 2024-10-10).
+(6)	Canada, N. R. Photovoltaic potential and solar resource maps of Canada. https://natural-resources.canada.ca/energy/energy-sources-distribution/renewables/solar-photovoltaic-energy/tools-solar-photovoltaic-energy/photovoltaic-and-solar-resource-maps/18366 (accessed 2024-08-07).
+(7)	Global Wind Atlas. https://globalwindatlas.info (accessed 2024-10-24).
+(8)	Electric Power Monthly - U.S. Energy Information Administration (EIA). https://www.eia.gov/electricity/monthly/epm_table_grapher.php (accessed 2024-10-04).
+(9)	Renewable Energy Sources and Climate Change Mitigation — IPCC. https://www.ipcc.ch/report/renewable-energy-sources-and-climate-change-mitigation/ (accessed 2024-10-21).
+(10)	Canada, N. R. Solar energy. https://natural-resources.canada.ca/our-natural-resources/energy-sources-distribution/renewable-energy/solar-energy/25796 (accessed 2024-10-10).
+(11)	Government of Canada, S. C. Add/Remove data - Electric power generation, monthly generation by type of electricity. https://www150.statcan.gc.ca/t1/tbl1/en/cv.action?pid=2510001501 (accessed 2024-09-18).
+(12)	Canada, N. R. Ocean energy. https://natural-resources.canada.ca/our-natural-resources/energy-sources-distribution/renewable-energy/ocean-energy/25794 (accessed 2024-10-21).
+(13)	Canada, E. and C. C. Fuel Life Cycle Assessment Model methodology, June 2024. https://www.canada.ca/en/environment-climate-change/services/managing-pollution/fuel-life-cycle-assessment-model/methodology.html (accessed 2024-10-11).
+(14)	List of Gas PowerPlants - GEO. https://globalenergyobservatory.org/list.php?db=PowerPlants&type=Gas (accessed 2024-09-26).
+(15)	Contract Data and Reports. https://www.ieso.ca/en/Sector-Participants/Resource-Acquisition-and-Contracts/Contract-Data-and-Reports (accessed 2024-10-11).
+(16)	Our power generation | Biomass power. OPG. https://www.opg.com/power-generation/our-power/biomass/ (accessed 2024-10-10).
+(17)	TC Energy — Bear Creek Cogeneration Plant. https://www.tcenergy.com/operations/power/bear-creek-cogeneration-plant/ (accessed 2024-10-10).
+(18)	Government of Canada, C. E. R. CER – Market Snapshot: Geothermal Power is stable and low carbon, but what is its potential in Canada? https://www.cer-rec.gc.ca/en/data-analysis/energy-markets/market-snapshots/2023/market-snapshot-geothermal-power-stable-low-carbon-what-is-potential-canada.html (accessed 2024-09-11).
+(19)	Government of Canada, C. E. R. CER – ARCHIVED – Canada’s Adoption of Renewable Power Sources – Energy Market Analysis. https://www.cer-rec.gc.ca/en/data-analysis/energy-commodities/electricity/report/archive/2017-canadian-adoption-renewable-power/canadas-adoption-renewable-power-sources-energy-market-analysis-biomass.html (accessed 2024-10-10).
+
