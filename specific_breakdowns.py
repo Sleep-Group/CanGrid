@@ -127,7 +127,7 @@ for i in range(len(coal_breakdown.columns)):
             coal_breakdown.loc[coal_breakdown.index[j], coal_breakdown.columns[i]] = coal_breakdown[coal_breakdown.columns[i]]['Canada']
         coal_breakdown.loc[coal_breakdown.index[j], coal_breakdown.columns[i]] = round(coal_breakdown.loc[coal_breakdown.index[j], coal_breakdown.columns[i]],3)
 ################oil_breakdown
-filepath = DATA_DIR / 'Oil_breakdown(edited).csv'
+filepath = DATA_DIR / 'oil_breakdown(edited).csv'
 #same source as coal_breakdown
 sectors = ['Canada','AB','BC','MB','NB','NL','NT','NS','NU','ON','PE','QC','SK','YT']
 oil_breakdown = pd.read_csv(filepath)
@@ -160,5 +160,6 @@ filepath = DATA_DIR / 'wind_breakdown.csv'
 
 wind_breakdown = pd.read_csv(filepath)
 wind_breakdown.set_index('Sector', inplace = True)
+
 
         
