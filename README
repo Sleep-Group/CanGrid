@@ -143,7 +143,7 @@ openpyxl>=3.1
 If you publish results from this dashboard, please cite  this repository. Contributions welcome via PRs. All datasources are listed below the citation.
 
 # Citation:
-Wei, Z., Turnbull, D., Sleep, S., CanGrid-Project
+Z. Wei, D. Turnbull, and S. Sleep, “CanGrid-Project.” [Online]. Available: https://cangrid.streamlit.app/. Accessed: {when you access it}.
 # References:
 (1)	Canada, E. and C. C. Fuel Life Cycle Assessment Model. https://www.canada.ca/en/environment-climate-change/services/managing-pollution/fuel-life-cycle-assessment-model.html (accessed 2024-10-08).
 (2)	ecoinvent Version 3.8. https://support.ecoinvent.org/ecoinvent-version-3.8 (accessed 2024-10-10).
@@ -164,5 +164,6 @@ Wei, Z., Turnbull, D., Sleep, S., CanGrid-Project
 (17)	TC Energy — Bear Creek Cogeneration Plant. https://www.tcenergy.com/operations/power/bear-creek-cogeneration-plant/ (accessed 2024-10-10).
 (18)	Government of Canada, C. E. R. CER – Market Snapshot: Geothermal Power is stable and low carbon, but what is its potential in Canada? https://www.cer-rec.gc.ca/en/data-analysis/energy-markets/market-snapshots/2023/market-snapshot-geothermal-power-stable-low-carbon-what-is-potential-canada.html (accessed 2024-09-11).
 (19)	Government of Canada, C. E. R. CER – ARCHIVED – Canada’s Adoption of Renewable Power Sources – Energy Market Analysis. https://www.cer-rec.gc.ca/en/data-analysis/energy-commodities/electricity/report/archive/2017-canadian-adoption-renewable-power/canadas-adoption-renewable-power-sources-energy-market-analysis-biomass.html (accessed 2024-10-10).
+
 
 
